@@ -1,26 +1,31 @@
 // ==UserScript==
-// @name         TUD AutoLogin with generating the 2FA
-// @namespace    http://tampermonkey.net/
-// @version      0.4.2
-// @description  Stop wasting your time entering login credentials or pressing useless buttons! (updated from spyfly)
-// @author       FurTactics
-// @icon         https://upload.wikimedia.org/wikipedia/commons/a/a3/Logo_TU_Dresden_small.svg
-// @match        https://bildungsportal.sachsen.de/*
-// @match        https://idp2.tu-dresden.de/*
-// @match        https://jexam.inf.tu-dresden.de/*
-// @match        https://selma.tu-dresden.de/*
-// @match        https://exam.zih.tu-dresden.de/*
-// @match        https://exam2.zih.tu-dresden.de/*
-// @match        https://exam3.zih.tu-dresden.de/*
-// @match        https://qis.dez.tu-dresden.de/qisserver/*
-// @match        https://msx.tu-dresden.de/owa/auth/logon*
-// @match        https://lskonline.tu-dresden.de/lskonline/de/102.0.1*
-// @match        https://idp.tu-dresden.de/idp*
-// @match        https://tud-autologin.spyfly.xyz/configuration/
-// @match        https://tex.zih.tu-dresden.de/*
-// @match        https://tud.uni-leipzig.de/moodle2/*
-// @grant        GM_getValue
-// @grant        GM_setValue
+// @name            TUD AutoLogin with generating the 2FA
+// @namespace       https://tud-autologin.spyfly.xyz/
+// @version         0.4.2
+// @description     Stop wasting your time entering login credentials or pressing useless buttons! The script allows you to fully automate the entry of all login details, including two-factor authentication. (updated from spyfly)
+// @description:de  Verschwende keine Zeit mehr mit dem Eingeben von Anmeldedaten oder dem Drücken sinnloser Tasten! Mit dem Skript kann man die Eingabe aller Anmeldedaten, einschließlich der Zwei-Faktor-Authentifizierung, vollständig automatisieren.
+// @description:ru  Перестань тратить время на ввод данных или кликанье бесполезных кнопок! Скрипт позволяет полностью автоматизировать ввод всех данных, включая двухфакторную аутентификацию.
+// @author          FurTactics
+// @icon            https://upload.wikimedia.org/wikipedia/commons/a/a3/Logo_TU_Dresden_small.svg
+// @match           https://bildungsportal.sachsen.de/*
+// @match           https://idp2.tu-dresden.de/*
+// @match           https://jexam.inf.tu-dresden.de/*
+// @match           https://selma.tu-dresden.de/*
+// @match           https://exam.zih.tu-dresden.de/*
+// @match           https://exam2.zih.tu-dresden.de/*
+// @match           https://exam3.zih.tu-dresden.de/*
+// @match           https://qis.dez.tu-dresden.de/qisserver/*
+// @match           https://msx.tu-dresden.de/owa/auth/logon*
+// @match           https://lskonline.tu-dresden.de/lskonline/de/102.0.1*
+// @match           https://idp.tu-dresden.de/idp*
+// @match           https://tud-autologin.spyfly.xyz/configuration/
+// @match           https://tex.zih.tu-dresden.de/*
+// @match           https://tud.uni-leipzig.de/moodle2/*
+// @supportURL      https://github.com/FurTactics/TUD-AutoLogin/issues
+// @updateURL       https://raw.githubusercontent.com/FurTactics/TUD-AutoLogin/master/script_only_for_Geeks.user.js
+// @downloadURL     https://raw.githubusercontent.com/FurTactics/TUD-AutoLogin/master/script_only_for_Geeks.user.js
+// @grant           GM_getValue
+// @grant           GM_setValue
 // ==/UserScript==
 
 'use strict'; (function (G) {

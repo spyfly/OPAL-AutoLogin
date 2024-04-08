@@ -1,26 +1,31 @@
 // ==UserScript==
-// @name         TUD AutoLogin with 2FA
-// @namespace    http://tampermonkey.net/
-// @version      0.4.1
-// @description  Stop wasting your time entering login credentials or pressing useless buttons! (updated from spyfly)
-// @author       FurTactics
-// @icon         https://upload.wikimedia.org/wikipedia/commons/a/a3/Logo_TU_Dresden_small.svg
-// @match        https://bildungsportal.sachsen.de/*
-// @match        https://idp2.tu-dresden.de/*
-// @match        https://jexam.inf.tu-dresden.de/*
-// @match        https://selma.tu-dresden.de/*
-// @match        https://exam.zih.tu-dresden.de/*
-// @match        https://exam2.zih.tu-dresden.de/*
-// @match        https://exam3.zih.tu-dresden.de/*
-// @match        https://qis.dez.tu-dresden.de/qisserver/*
-// @match        https://msx.tu-dresden.de/owa/auth/logon*
-// @match        https://lskonline.tu-dresden.de/lskonline/de/102.0.1*
-// @match        https://idp.tu-dresden.de/idp*
-// @match        https://tud-autologin.spyfly.xyz/configuration/
-// @match        https://tex.zih.tu-dresden.de/*
-// @match        https://tud.uni-leipzig.de/moodle2/*
-// @grant        GM_getValue
-// @grant        GM_setValue
+// @name            TUD AutoLogin
+// @namespace       https://tud-autologin.spyfly.xyz/
+// @version         0.4.2
+// @description     Stop wasting your time entering login credentials or pressing useless buttons! (updated from spyfly)
+// @description:de  Verschwende keine Zeit mehr mit dem Eingeben von Anmeldedaten oder dem Drücken sinnloser Tasten!
+// @description:ru  Перестань тратить время на ввод данных или кликанье бесполезных кнопок!
+// @author          FurTactics
+// @icon            https://upload.wikimedia.org/wikipedia/commons/a/a3/Logo_TU_Dresden_small.svg
+// @match           https://bildungsportal.sachsen.de/*
+// @match           https://idp2.tu-dresden.de/*
+// @match           https://jexam.inf.tu-dresden.de/*
+// @match           https://selma.tu-dresden.de/*
+// @match           https://exam.zih.tu-dresden.de/*
+// @match           https://exam2.zih.tu-dresden.de/*
+// @match           https://exam3.zih.tu-dresden.de/*
+// @match           https://qis.dez.tu-dresden.de/qisserver/*
+// @match           https://msx.tu-dresden.de/owa/auth/logon*
+// @match           https://lskonline.tu-dresden.de/lskonline/de/102.0.1*
+// @match           https://idp.tu-dresden.de/idp*
+// @match           https://tud-autologin.spyfly.xyz/configuration/
+// @match           https://tex.zih.tu-dresden.de/*
+// @match           https://tud.uni-leipzig.de/moodle2/*
+// @supportURL      https://github.com/FurTactics/TUD-AutoLogin/issues
+// @updateURL       https://raw.githubusercontent.com/FurTactics/TUD-AutoLogin/master/script.user.js
+// @downloadURL     https://raw.githubusercontent.com/FurTactics/TUD-AutoLogin/master/script.user.js
+// @grant           GM_getValue
+// @grant           GM_setValue
 // ==/UserScript==
 
 (async function () {
@@ -49,6 +54,7 @@
   const isMoodle = (window.location.host == "tud.uni-leipzig.de")
 
   const credentialsAvailable = (tud.username.length > 0 && tud.password.length > 0);
+  var stats;
 
   if (isConfigPage) {
     document.getElementById("notinstalled").remove();
@@ -60,6 +66,7 @@
         username: document.getElementById("username").value,
         password: document.getElementById("password").value
       });
+      GM_setValue("stats", null);
       alert("Configuration updated!")
     });
   } else if (isOpalLoginPage || isTudExamLoginPage) {
@@ -89,7 +96,7 @@
       }
       loginSelector.selectedIndex = loginIndex;
 
-      //Press Login Button
+      // Press Login Button
       document.querySelector("button[name$='shibLogin']").click();
     }
   } else if (isTudLoginPage || isTudIdp) {
@@ -103,26 +110,14 @@
       document.getElementById("password").value = tud.password;
       if (credentialsAvailable) {
         document.getElementsByName("_eventId_proceed")[0].click();
+        GM_setValue("stats", GM_getValue("stats") + 1);
       }
     }
     if (hasSecretField) {
-
-      //this setup works with either keyboard input or, for example, 2FAS browser extension
-      let typingTimer; //timer identifier
-      let doneTypingInterval = 2000; //time in ms (2 seconds)
-      let myInput = document.getElementById('fudis_otp_input');
-
-      //on keyup, start the countdown
-      myInput.addEventListener('keypress', evt => {
-        clearTimeout(typingTimer);
-        if (myInput.value) {
-          typingTimer = setTimeout(doneTyping, doneTypingInterval);
-        }
-      });
-      //user is "finished typing," do click
-      function doneTyping() {
-        document.getElementsByName("_eventId_proceed")[0].click();
+      while (document.getElementById("fudis_otp_input").value.length < 6) {
+          await sleep(1500);
       }
+        document.getElementsByName("_eventId_proceed")[0].click();
     }
   } else if (isJExam) {
     // AutoLogin for JExam 5
@@ -133,6 +128,7 @@
       document.getElementById("username").value = tud.username;
       document.getElementById("password").value = tud.password;
       if (credentialsAvailable) {
+        GM_setValue("stats", GM_getValue('stats') + 1);
         document.getElementsByClassName("submit")[0].click();
       }
     }
@@ -163,6 +159,7 @@
       document.getElementsByClassName("loginuser")[0].value = tud.username;
       document.getElementsByClassName("loginpass")[0].value = tud.password;
       if (credentialsAvailable) {
+        GM_setValue("stats", GM_getValue('stats') + 1);
         document.getElementsByClassName("submit")[0].click();
       }
     }
@@ -171,6 +168,7 @@
     document.getElementById('username').value = tud.username;
     document.getElementById('password').value = tud.password;
     if (credentialsAvailable) {
+      GM_setValue("stats", GM_getValue('stats') + 1);
       document.getElementsByClassName("signinbutton")[0].click();
     }
   } else if (isLskOnline) {
