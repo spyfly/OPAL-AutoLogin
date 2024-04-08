@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TUD AutoLogin with generating the 2FA
 // @namespace    http://tampermonkey.net/
-// @version      0.4.1 (for Geeks)
+// @version      0.4.2
 // @description  Stop wasting your time entering login credentials or pressing useless buttons! (updated from spyfly)
 // @author       FurTactics
 // @icon         https://upload.wikimedia.org/wikipedia/commons/a/a3/Logo_TU_Dresden_small.svg
@@ -24,7 +24,6 @@
 // ==/UserScript==
 
 'use strict'; (function (G) {
-    // this function is used to generate the OTP code
     function r(d, b, c) {
         var h = 0, a = [], f = 0, g, m, k, e, l, p, q, t, w = !1, n = [], u = [], v, r = !1; c = c || {}; g = c.encoding || "UTF8"; v = c.numRounds || 1; if (v !== parseInt(v, 10) || 1 > v) throw Error("numRounds must a integer >= 1"); if ("SHA-1" === d) l = 512, p = z, q = H, e = 160, t = function (a) { return a.slice() }; else throw Error("Chosen SHA variant is not supported"); k = A(b, g); m = x(d); this.setHMACKey = function (a, f, b) {
             var c; if (!0 === w) throw Error("HMAC key already set"); if (!0 === r) throw Error("Cannot set HMAC key after calling update");
@@ -54,7 +53,7 @@
             }; break; case "TEXT": c = function (c, a, f) {
                 var g, d, k = 0, e, l, p, q, t, n; a = a || [0]; f = f || 0; p = f >>> 3; if ("UTF8" === b) for (n = 3, e = 0; e < c.length; e += 1)for (g = c.charCodeAt(e), d = [], 128 > g ? d.push(g) : 2048 > g ? (d.push(192 | g >>> 6), d.push(128 | g & 63)) : 55296 > g || 57344 <= g ? d.push(224 | g >>> 12, 128 | g >>> 6 & 63, 128 | g & 63) : (e += 1, g = 65536 + ((g & 1023) << 10 | c.charCodeAt(e) & 1023), d.push(240 | g >>> 18, 128 | g >>> 12 & 63, 128 | g >>> 6 & 63, 128 | g & 63)), l = 0; l < d.length; l += 1) {
                     t = k +
-                    p; for (q = t >>> 2; a.length <= q;)a.push(0); a[q] |= d[l] << 8 * (n + t % 4 * -1); k += 1
+                        p; for (q = t >>> 2; a.length <= q;)a.push(0); a[q] |= d[l] << 8 * (n + t % 4 * -1); k += 1
                 } else if ("UTF16BE" === b || "UTF16LE" === b) for (n = 2, d = "UTF16LE" === b && !0 || "UTF16LE" !== b && !1, e = 0; e < c.length; e += 1) { g = c.charCodeAt(e); !0 === d && (l = g & 255, g = l << 8 | g >>> 8); t = k + p; for (q = t >>> 2; a.length <= q;)a.push(0); a[q] |= g << 8 * (n + t % 4 * -1); k += 2 } return { value: a, binLen: 8 * k + f }
             }; break; case "B64": c = function (b, a, f) {
                 var c = 0, d, k, e, l, p, q, n; if (-1 === b.search(/^[a-zA-Z0-9=+\/]+$/)) throw Error("Invalid character in base-64 string"); k = b.indexOf("="); b = b.replace(/\=/g,
@@ -79,7 +78,7 @@
     var tud = {
         username: "",
         password: "",
-        secret: "" // 2FA Secret from QR-Code
+        secret: ""
     }
     if (GM_getValue("tud_creds") != undefined) {
         tud = GM_getValue("tud_creds");
@@ -100,7 +99,9 @@
     const isMoodle = (window.location.host == "tud.uni-leipzig.de")
 
     const credentialsAvailable = (tud.username.length > 0 && tud.password.length > 0);
-    const secretIsAvailable = tud.secret.length > 0;
+    const secretIsAvailable = tud.secret.length == 32;
+    let isSecretEntered;
+    var stats;
 
     if (isConfigPage) {
         document.getElementById("notinstalled").remove();
@@ -108,10 +109,13 @@
         document.getElementById("password").value = tud.password;
 
         document.getElementById("save").addEventListener("click", function () {
+            let secretInput = prompt("Enter your secret code with 32 letters and digits from QR-Code");
             GM_setValue("tud_creds", {
                 username: document.getElementById("username").value,
-                password: document.getElementById("password").value
+                password: document.getElementById("password").value,
+                secret: secretInput
             });
+            GM_setValue("stats", null);
             alert("Configuration updated!")
         });
     } else if (isOpalLoginPage || isTudExamLoginPage) {
@@ -141,7 +145,7 @@
             }
             loginSelector.selectedIndex = loginIndex;
 
-            //Press Login Button
+            // Press Login Button
             document.querySelector("button[name$='shibLogin']").click();
         }
     } else if (isTudLoginPage || isTudIdp) {
@@ -154,13 +158,19 @@
             document.getElementById("username").value = tud.username;
             document.getElementById("password").value = tud.password;
             if (credentialsAvailable) {
+                GM_setValue("isSecretEntered", false);
+                GM_setValue("stats", GM_getValue("stats") + 1);
                 document.getElementsByName("_eventId_proceed")[0].click();
             }
         }
         if (hasSecretField) {
             document.getElementById("fudis_otp_input").value = getOTP(tud.secret);
-            if (secretIsAvailable) {
+            await sleep(100);
+            if (secretIsAvailable && !GM_getValue("isSecretEntered")) {
+                GM_setValue("isSecretEntered", true); // this is for insert the code only once
                 document.getElementsByName("_eventId_proceed")[0].click();
+            } else {
+                alert("Something went wrong with your 2FA code");
             }
         }
     } else if (isJExam) {
@@ -172,6 +182,7 @@
             document.getElementById("username").value = tud.username;
             document.getElementById("password").value = tud.password;
             if (credentialsAvailable) {
+                GM_setValue("stats", GM_getValue('stats') + 1);
                 document.getElementsByClassName("submit")[0].click();
             }
         }
@@ -202,6 +213,7 @@
             document.getElementsByClassName("loginuser")[0].value = tud.username;
             document.getElementsByClassName("loginpass")[0].value = tud.password;
             if (credentialsAvailable) {
+                GM_setValue("stats", GM_getValue('stats') + 1);
                 document.getElementsByClassName("submit")[0].click();
             }
         }
@@ -210,6 +222,7 @@
         document.getElementById('username').value = tud.username;
         document.getElementById('password').value = tud.password;
         if (credentialsAvailable) {
+            GM_setValue("stats", GM_getValue('stats') + 1);
             document.getElementsByClassName("signinbutton")[0].click();
         }
     } else if (isLskOnline) {
@@ -238,7 +251,7 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// TOTP Code modified from https://github.com/tkooda/totp.info and https://gist.github.com/gbraad/2885828
+// TOTP Code modified from https://github.com/tkooda/totp.info and fixed base32tohex function without check the correctness the secret set
 
 function dec2hex(s) { return (s < 15.5 ? '0' : '') + Math.round(s).toString(16); }
 function hex2dec(s) { return parseInt(s, 16); }
@@ -269,15 +282,22 @@ function leftpad(str, len, pad) {
 };
 
 function updateOtp(secret) {
-    var epoch = Math.round(new Date().getTime() / 1000.0);
+    var epoch = Math.round((new Date().getTime()) / 1000.0);
     var time = leftpad(dec2hex(Math.floor(epoch / 30)), 16, '0');
     var shaObj = new jsSHA("SHA-1", "HEX");
     shaObj.setHMACKey(base32tohex(secret), "HEX");
     shaObj.update(time);
     var hmac = shaObj.getHMAC("HEX");
-    var offset = hex2dec(hmac.substring(hmac.length - 1));
+
+    if (hmac == 'KEY MUST BE IN BYTE INCREMENTS') {
+
+    } else {
+        var offset = hex2dec(hmac.substring(hmac.length - 1));
+    }
+
     var otp = (hex2dec(hmac.substr(offset * 2, 8)) & hex2dec('7fffffff')) + '';
     otp = (otp).substr(otp.length - 6, 6);
+
     return otp;
 };
 
@@ -285,6 +305,6 @@ function getOTP(secret) {
     if (secret) {
         return updateOtp(secret);
     } else {
-        return undefined
+        return undefined;
     }
 };
