@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name            TUD AutoLogin with generating the 2FA
 // @namespace       https://tud-autologin.spyfly.xyz/
-// @version         0.4.2
+// @version         0.4.3
 // @description     Stop wasting your time entering login credentials or pressing useless buttons! The script allows you to fully automate the entry of all login details, including two-factor authentication. (updated from spyfly)
 // @description:de  Verschwende keine Zeit mehr mit dem Eingeben von Anmeldedaten oder dem Drücken sinnloser Tasten! Mit dem Skript kann man die Eingabe aller Anmeldedaten, einschließlich der Zwei-Faktor-Authentifizierung, vollständig automatisieren.
 // @description:ru  Перестань тратить время на ввод данных или кликанье бесполезных кнопок! Скрипт позволяет полностью автоматизировать ввод всех данных, включая двухфакторную аутентификацию.
@@ -21,11 +21,15 @@
 // @match           https://tud-autologin.spyfly.xyz/configuration/
 // @match           https://tex.zih.tu-dresden.de/*
 // @match           https://tud.uni-leipzig.de/moodle2/*
+// @match           https://artemis-app.inf.tu-dresden.de/*
 // @supportURL      https://github.com/FurTactics/TUD-AutoLogin/issues
-// @updateURL       https://raw.githubusercontent.com/FurTactics/TUD-AutoLogin/master/script_only_for_Geeks.user.js
 // @downloadURL     https://raw.githubusercontent.com/FurTactics/TUD-AutoLogin/master/script_only_for_Geeks.user.js
 // @grant           GM_getValue
 // @grant           GM_setValue
+// @grant           GM_notification
+// @grant           GM_registerMenuCommand
+// @grant           GM_listValues
+// @grant           GM_deleteValue
 // ==/UserScript==
 
 'use strict'; (function (G) {
@@ -101,14 +105,85 @@
     const isLskOnline = (window.location.host == "lskonline.tu-dresden.de");
     const isTudIdp = (window.location.host == "idp.tu-dresden.de");
     const isShareLatex = (window.location.host == "tex.zih.tu-dresden.de");
-    const isMoodle = (window.location.host == "tud.uni-leipzig.de")
+    const isMoodle = (window.location.host == "tud.uni-leipzig.de");
 
     const credentialsAvailable = (tud.username.length > 0 && tud.password.length > 0);
-    const secretIsAvailable = tud.secret.length == 32;
-    let isSecretEntered;
-    var stats;
+    const secretIsAvailable = tud.secret.length > 5;
+    const stat = GM_getValue("stats");
+    const menu_command_id_1 = GM_registerMenuCommand("You saved " + stat + " clicks 👍", function (event) { console.clear; console.log("You are awesome. " + stat + " clicks is more than " + Math.round(stat / 60) + " minutes. If you want, you can support me on GitHub https://github.com/FurTactics/TUD-AutoLogin/") }, { autoClose: false });
+    const menu_command_id_2 = GM_registerMenuCommand("Delete all your saved data", function (event) {
+        const keys = GM_listValues();
+        for (let i = 0; i < keys.length; i++) {
+            const key = keys[i];
+            GM_deleteValue(key);
+        }
+        GM_notification({
+            text: "Your data has been successfully deleted\nClick to visit configuration website",
+            title: "TUD Autologin",
+            url: 'https://tud-autologin.spyfly.xyz/configuration/#configuration',
+            silent: true,
+            timeout: 10000,
+            onclick: (event) => { }
+        });
+    }, { autoClose: true });
+
 
     if (isConfigPage) {
+        // Change all links to GitHub on a config page
+        var links = [document.querySelectorAll("a")[0], document.querySelectorAll("a")[2], document.querySelectorAll("a")[4]];
+        for (var i = 0; i < links.length; i++) {
+            links[i].getAttribute("href");
+            links[i].setAttribute("href", "https://github.com/FurTactics/TUD-AutoLogin/");
+            links[i].addEventListener("click", function (event) {
+                event.preventDefault(); // Prevent the default action
+                window.open("https://github.com/FurTactics/TUD-AutoLogin/", "_blank"); // Open the link in a new tab
+            });
+        }
+
+        // Add GitHub link in footer
+        const footer = document.querySelector('.site-footer');
+        if (footer) {
+            const spyflyLink = footer.querySelector('a[href="https://github.com/spyfly"]');
+            if (spyflyLink) {
+                // Create and insert "and" text node
+                const andText = document.createTextNode(' and modified by ');
+                spyflyLink.parentNode.insertBefore(andText, spyflyLink.nextSibling);
+                // create link
+                const newLink = document.createElement('a');
+                newLink.href = 'https://github.com/FurTactics/';
+                newLink.textContent = 'FurTactics';
+                // Insert the new link after the spyfly link
+                andText.parentNode.insertBefore(newLink, andText.nextSibling);
+            }
+        }
+
+        // Test notification
+        const p_6 = document.querySelectorAll("p")[6];
+        p_6.textContent = "Make sure, that you can receive notifications from browser.";
+
+        const p_before_button = document.createElement('p');
+        p_before_button.textContent = 'Here is a test.';
+        p_6.parentNode.insertBefore(p_before_button, p_6.nextSibling);
+
+        const button = document.createElement('button');
+        button.textContent = 'Test';
+        button.addEventListener('click', () => {
+            GM_notification({
+                title: 'Test Notification',
+                text: 'This is a test notification from the script.\nYou will receive such notifications if an incorrect 2FA code is entered.',
+                timeout: 10000
+            });
+        });
+        p_before_button.parentNode.insertBefore(button, p_before_button.nextSibling);
+
+        const p_after_button = document.createElement('p');
+        p_after_button.textContent = 'If you haven\'t received a notification, try turning off do not disturb mode.';
+        button.parentNode.insertBefore(p_after_button, button.nextSibling);
+
+        const p_congratulation = document.createElement('p');
+        p_congratulation.textContent = 'Otherwise, welcome to the world of saved time 😉';
+        p_after_button.parentNode.insertBefore(p_congratulation, p_after_button.nextSibling);
+
         document.getElementById("notinstalled").remove();
         document.getElementById("username").value = tud.username;
         document.getElementById("password").value = tud.password;
@@ -120,8 +195,9 @@
                 password: document.getElementById("password").value,
                 secret: secretInput
             });
-            GM_setValue("stats", null);
-            alert("Configuration updated!")
+            GM_setValue("stats", 0);
+            alert("Is your code from app: " + getOTP(secretInput) + "?\nIf not, please check your token");
+            alert("Configuration updated!");
         });
     } else if (isOpalLoginPage || isTudExamLoginPage) {
         const mainPageLoginBtn = document.querySelector("button[name=shibLogin]");
@@ -134,6 +210,7 @@
             if (contentPageLoginBtn) {
 
                 contentPageLoginBtn.click();
+                GM_setValue("stats", GM_getValue('stats') + 1);
                 // Wait for Login Prompt to appear
                 while (loginSelector == null) {
                     loginSelector = document.querySelector("select[name$='wayfselection']");
@@ -152,8 +229,12 @@
 
             // Press Login Button
             document.querySelector("button[name$='shibLogin']").click();
+            GM_setValue("stats", GM_getValue('stats') + 1);
         }
-    } else if (isTudLoginPage || isTudIdp) {
+    }
+    else if (isTudLoginPage || isTudIdp) {
+        // Add dark theme
+        darkThemeIDP();
         // We are on the TUD I2DP Page
         const hasLoginField = (document.getElementById("username") != undefined);
         const hasSecretField = (document.getElementById("fudis_otp_input") != undefined);
@@ -163,22 +244,16 @@
             document.getElementById("username").value = tud.username;
             document.getElementById("password").value = tud.password;
             if (credentialsAvailable) {
+                document.getElementsByName("_eventId_proceed")[0].click();
                 GM_setValue("isSecretEntered", false);
                 GM_setValue("stats", GM_getValue("stats") + 1);
-                document.getElementsByName("_eventId_proceed")[0].click();
             }
         }
         if (hasSecretField) {
-            document.getElementById("fudis_otp_input").value = getOTP(tud.secret);
-            await sleep(100);
-            if (secretIsAvailable && !GM_getValue("isSecretEntered")) {
-                GM_setValue("isSecretEntered", true); // this is for insert the code only once
-                document.getElementsByName("_eventId_proceed")[0].click();
-            } else {
-                alert("Something went wrong with your 2FA code");
-            }
+            enterSecret();
         }
-    } else if (isJExam) {
+    }
+    else if (isJExam) {
         // AutoLogin for JExam 5
         if (window.location.pathname == "/") {
             window.location = "https://jexam.inf.tu-dresden.de/de.jexam.web.v5/"
@@ -187,73 +262,134 @@
             document.getElementById("username").value = tud.username;
             document.getElementById("password").value = tud.password;
             if (credentialsAvailable) {
-                GM_setValue("stats", GM_getValue('stats') + 1);
                 document.getElementsByClassName("submit")[0].click();
+                GM_setValue("stats", GM_getValue('stats') + 1);
             }
         }
-    } else if (isSelma) {
+    }
+    else if (isSelma) {
         // AutoLogin for selma
         if (document.getElementById("field_user") != undefined) {
             document.getElementById("field_user").value = tud.username;
             document.getElementById("field_pass").value = tud.password;
             if (credentialsAvailable) {
                 document.getElementById("logIn_btn").click();
+                GM_setValue("stats", GM_getValue('stats') + 1);
             }
         }
-    } else if (isMoodle) {
+    }
+    else if (isMoodle) {
         // AutoLogin for Moodle
         if (window.location.pathname == "/moodle2/login/index.php") {
             // Check if we are on the login page
             document.querySelector('[href="https://tud.uni-leipzig.de/moodle2/auth/shibboleth/index.php"]').click();
+            GM_setValue("stats", GM_getValue('stats') + 1);
         } else {
             //Go to the login page if we need to login
             const loginBtn = document.querySelector('[href="https://tud.uni-leipzig.de/moodle2/login/index.php"]');
             if (loginBtn) {
                 loginBtn.click();
+                GM_setValue("stats", GM_getValue('stats') + 1);
             }
         }
-    } else if (isQisServer) {
+    }
+    else if (isQisServer) {
         //AutoLogin for QISServer
         if (document.getElementsByClassName("loginuser").length >= 1) {
             document.getElementsByClassName("loginuser")[0].value = tud.username;
             document.getElementsByClassName("loginpass")[0].value = tud.password;
             if (credentialsAvailable) {
-                GM_setValue("stats", GM_getValue('stats') + 1);
                 document.getElementsByClassName("submit")[0].click();
+                GM_setValue("stats", GM_getValue('stats') + 1);
             }
         }
-    } else if (isOWA) {
+    }
+    else if (isOWA) {
         //AutoLogin for OWA
         document.getElementById('username').value = tud.username;
         document.getElementById('password').value = tud.password;
         if (credentialsAvailable) {
-            GM_setValue("stats", GM_getValue('stats') + 1);
             document.getElementsByClassName("signinbutton")[0].click();
+            GM_setValue("stats", GM_getValue('stats') + 1);
         }
-    } else if (isLskOnline) {
+    }
+    else if (isLskOnline) {
         //AutoLogin for LSKOnline
         document.getElementsByName('j_username')[0].value = tud.username;
         document.getElementsByName('j_password')[0].value = tud.password;
         if (credentialsAvailable) {
             document.getElementsByName('submit')[0].click();
+            GM_setValue("stats", GM_getValue('stats') + 1);
         }
-    } else if (isShareLatex) {
+    }
+    else if (isShareLatex) {
         //AutoLogin for ShareLaTeX
         if (window.location.pathname == "/saml/login") {
             // Check if we are on the login page
             document.querySelector('[href="/saml/login/go"]').click();
+            GM_setValue("stats", GM_getValue('stats') + 1);
         } else {
             //Go to the login page if we need to login
             const loginBtn = document.querySelector('[href="/login"]');
             if (loginBtn) {
                 loginBtn.click();
+                GM_setValue("stats", GM_getValue('stats') + 1);
             }
         }
     }
+
+    function enterSecret(pinInput) {
+        document.getElementById("fudis_otp_input").focus();
+        var otp_input = getOTP(tud.secret);
+        sleep(200);
+        if (!GM_getValue("isSecretEntered")) {
+            document.getElementById("fudis_otp_input").value = otp_input;
+            GM_setValue("isSecretEntered", true); // this is for insert the code only once
+            //document.getElementsByName("_eventId_proceed")[0].click();
+            GM_setValue("stats", GM_getValue('stats') + 1);
+        } else {
+            const clicked = showNotification(otp_input);
+        }
+    }
+
+    function showNotification(myCode) {
+        GM_notification({
+            text: "Your 2FA code was incorrect \nClick to show a new code, check it against the application or close this notification",
+            title: "TUD Autologin",
+            url: 'https:/google.com/',
+            silent: true,
+            timeout: 10000,
+            onclick: (event) => {
+                // The userscript is still running, so don't open example.com
+                event.preventDefault();
+                GM_notification({
+                    title: "TUD Autologin",
+                    text: "New Code is: " + myCode + "\nClick to enter the new code",
+                    silent: true,
+                    onclick: (event) => {
+                        document.getElementById("fudis_otp_input").value = myCode;
+                    }
+                });
+            }
+        });
+    }
+
 })();
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function darkThemeIDP() {
+    const background = document.querySelector('body');
+    const box = document.querySelector('.box');
+    const inputs = document.querySelectorAll('input');
+    background.style.backgroundColor = '#232323';
+    box.style.backgroundColor = '#696969';
+    inputs.forEach(input => {
+        input.style.backgroundColor = '#696969';
+        input.style.color = '#fff';
+    });
 }
 
 // TOTP Code modified from https://github.com/tkooda/totp.info and fixed base32tohex function without check the correctness the secret set
