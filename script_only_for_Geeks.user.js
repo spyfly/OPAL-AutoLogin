@@ -345,7 +345,7 @@
         if (!GM_getValue("isSecretEntered")) {
             document.getElementById("fudis_otp_input").value = otp_input;
             GM_setValue("isSecretEntered", true); // this is for insert the code only once
-            //document.getElementsByName("_eventId_proceed")[0].click();
+            document.getElementsByName("_eventId_proceed")[0].click();
             GM_setValue("stats", GM_getValue('stats') + 1);
         } else {
             const clicked = showNotification(otp_input);
