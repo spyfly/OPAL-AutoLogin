@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name            TUD AutoLogin with generating the 2FA
 // @namespace       https://tud-autologin.spyfly.xyz/
-// @version         0.4.3
+// @version         0.4.4
 // @description     Stop wasting your time entering login credentials or pressing useless buttons! The script allows you to fully automate the entry of all login details, including two-factor authentication. (updated from spyfly)
 // @description:de  Verschwende keine Zeit mehr mit dem Eingeben von Anmeldedaten oder dem Drücken sinnloser Tasten! Mit dem Skript kann man die Eingabe aller Anmeldedaten, einschließlich der Zwei-Faktor-Authentifizierung, vollständig automatisieren.
 // @description:ru  Перестань тратить время на ввод данных или кликанье бесполезных кнопок! Скрипт позволяет полностью автоматизировать ввод всех данных, включая двухфакторную аутентификацию.
@@ -382,10 +382,10 @@ function sleep(ms) {
 
 function darkThemeIDP() {
     const background = document.querySelector('body');
-    const box = document.querySelector('.box');
+    const mainBox = document.querySelector('main');
     const inputs = document.querySelectorAll('input');
     background.style.backgroundColor = '#232323';
-    box.style.backgroundColor = '#696969';
+    mainBox.style.backgroundColor = '#696969';
     inputs.forEach(input => {
         input.style.backgroundColor = '#696969';
         input.style.color = '#fff';
